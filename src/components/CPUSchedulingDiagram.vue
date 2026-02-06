@@ -94,6 +94,8 @@ const getNextProcess = () => {
       return ready[0]
     case 'SJF':
       return ready.reduce((min, p) => p.remainingTime < min.remainingTime ? p : min, ready[0])
+    case 'SRT':
+      return ready.reduce((min, p) => p.remainingTime < min.remainingTime ? p : min, ready[0])
     case 'Priority':
       return ready.reduce((min, p) => p.priority < min.priority ? p : min, ready[0])
     case 'RR':
@@ -154,6 +156,19 @@ const simulationStep = () => {
       addLog(`Process ${next.id} dispatched to CPU`)
     }
   } else {
+    // Preemptive check for Shortest Remaining Time (SRT):
+    if (selectedAlgorithm.value === 'SRT') {
+      const shorter = readyQueue.value.find(p => p.remainingTime < cpuProcess.value.remainingTime)
+      if (shorter) {
+        cpuProcess.value.state = 'ready'
+        addLog(`Process ${cpuProcess.value.id} preempted (Shorter job ${shorter.id} arrived)`)
+        // Do not move the preempted process to the end; leave ordering.
+        cpuProcess.value = null
+        quantumCounter = 0
+        return
+      }
+    }
+
     cpuProcess.value.remainingTime--
     quantumCounter++
     
@@ -223,7 +238,7 @@ const states = [
 const algorithms = [
   { name: 'FCFS', full: 'First Come First Serve', description: 'Processes are executed in order of arrival' },
   { name: 'SJF', full: 'Shortest Job First', description: 'Process with shortest burst time executes first' },
-  { name: 'Priority', full: 'Priority Scheduling', description: 'Process with highest priority executes first' },
+  { name: 'SRT', full: 'Shortest Remaining Time', description: 'Process with shortest remaining time executes first' },
   { name: 'RR', full: 'Round Robin', description: 'Each process gets a fixed time quantum' }
 ]
 
@@ -338,10 +353,15 @@ const clearHighlight = () => {
       <div class="practice-controls">
         <div class="control-group">
           <label>Algorithm:</label>
-          <select v-model="selectedAlgorithm" :disabled="isSimulationRunning">
+          <select
+            v-model="selectedAlgorithm"
+            :disabled="isSimulationRunning"
+            class="algorithm-select"
+            :class="'select-' + selectedAlgorithm.toLowerCase()"
+          >
             <option value="FCFS">FCFS - First Come First Serve</option>
             <option value="SJF">SJF - Shortest Job First</option>
-            <option value="Priority">Priority Scheduling</option>
+            <option value="SRT">SRT - Shortest Remaining Time</option>
             <option value="RR">RR - Round Robin</option>
           </select>
         </div>
@@ -801,9 +821,14 @@ const clearHighlight = () => {
         Scheduling Algorithms
       </h2>
       <div class="algorithms-grid">
-        <div v-for="algo in algorithms" :key="algo.name" class="algorithm-card">
+        <div
+          v-for="algo in algorithms"
+          :key="algo.name"
+          class="algorithm-card"
+          :class="`algo-card-${algo.name.toLowerCase()}`"
+        >
           <div class="algo-header">
-            <span class="algo-badge">{{ algo.name }}</span>
+            <span :class="`algo-badge algo-badge-${algo.name.toLowerCase()}`">{{ algo.name }}</span>
             <h4>{{ algo.full }}</h4>
           </div>
           <p>{{ algo.description }}</p>
@@ -1395,6 +1420,17 @@ const clearHighlight = () => {
   transition: all 0.3s ease;
 }
 
+/* Make all algorithm cards use the FCFS gradient background */
+.algorithms-grid .algorithm-card.algo-card-fcfs,
+.algorithms-grid .algorithm-card.algo-card-sjf,
+.algorithms-grid .algorithm-card.algo-card-priority,
+.algorithms-grid .algorithm-card.algo-card-rr {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.25) !important;
+}
+
 .algorithm-card:hover {
   transform: translateY(-5px);
   border-color: #667eea;
@@ -1414,6 +1450,14 @@ const clearHighlight = () => {
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 700;
+}
+
+.algorithms-grid .algo-badge.algo-badge-fcfs,
+.algorithms-grid .algo-badge.algo-badge-sjf,
+.algorithms-grid .algo-badge.algo-badge-priority,
+.algorithms-grid .algo-badge.algo-badge-rr {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: #fff !important;
 }
 
 .algo-header h4 {
@@ -1627,6 +1671,32 @@ const clearHighlight = () => {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: 0.5rem;
+}
+
+/* Styling for the algorithm select control */
+.algorithm-select {
+  background: rgba(255,255,255,0.03);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+}
+.algorithm-select.select-fcfs {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+.algorithm-select.select-sjf {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+.algorithm-select.select-priority {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+.algorithm-select.select-rr {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+/* Try to style options (limited browser control) */
+.algorithm-select option {
+  color: #000;
 }
 
 .practice-header p {
