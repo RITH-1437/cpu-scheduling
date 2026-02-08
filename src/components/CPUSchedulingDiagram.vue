@@ -23,19 +23,19 @@ const addProcess = () => {
   const newProcess = {
     id: `P${nextProcessId.value}`,
     arrivalTime: currentTime.value,
-    burstTime: Math.floor(Math.random() * 5) + 1,
-    remainingTime: 0,
+      burstTime: Math.floor(Math.random() * 5) + 1,
+      remainingTime: 0, // will be set to burstTime
     priority: Math.floor(Math.random() * 5) + 1,
-    state: 'new',
+      state: 'new',
     waitingTime: 0,
     turnaroundTime: 0
   }
+  // ensure remainingTime equals burstTime and add as ready immediately
   newProcess.remainingTime = newProcess.burstTime
   practiceProcesses.value.push(newProcess)
   addLog(`Process ${newProcess.id} created (Burst: ${newProcess.burstTime}, Priority: ${newProcess.priority})`)
   nextProcessId.value++
   
-  // Auto move to ready after short delay
   setTimeout(() => {
     if (newProcess.state === 'new') {
       newProcess.state = 'ready'
@@ -48,17 +48,18 @@ const addCustomProcess = (burstTime, priority) => {
   const newProcess = {
     id: `P${nextProcessId.value}`,
     arrivalTime: currentTime.value,
-    burstTime: burstTime,
-    remainingTime: burstTime,
-    priority: priority,
-    state: 'new',
+      burstTime: burstTime,
+      remainingTime: burstTime,
+      priority: priority,
+      state: 'new',
     waitingTime: 0,
     turnaroundTime: 0
   }
   practiceProcesses.value.push(newProcess)
   addLog(`Process ${newProcess.id} created (Burst: ${burstTime}, Priority: ${priority})`)
   nextProcessId.value++
-  
+
+
   setTimeout(() => {
     if (newProcess.state === 'new') {
       newProcess.state = 'ready'
@@ -132,12 +133,15 @@ const simulationStep = () => {
   currentTime.value++
   
   // Move waiting processes back to ready (simulate I/O completion)
-  waitingQueue.value.forEach(p => {
-    if (Math.random() < 0.3) {
-      p.state = 'ready'
-      addLog(`Process ${p.id} I/O complete, moved to Ready Queue`)
-    }
-  })
+  // Disabled for SRT and SJF to show pure algorithm behavior
+  if (selectedAlgorithm.value !== 'SRT' && selectedAlgorithm.value !== 'SJF') {
+    waitingQueue.value.forEach(p => {
+      if (Math.random() < 0.3) {
+        p.state = 'ready'
+        addLog(`Process ${p.id} I/O complete, moved to Ready Queue`)
+      }
+    })
+  }
   
   // Update waiting time for ready processes
   readyQueue.value.forEach(p => {
@@ -190,8 +194,8 @@ const simulationStep = () => {
       practiceProcesses.value.push(cpuProcess.value)
       cpuProcess.value = null
       quantumCounter = 0
-    } else if (Math.random() < 0.1) {
-      // Random I/O request
+    } else if (Math.random() < 0.1 && selectedAlgorithm.value !== 'SRT' && selectedAlgorithm.value !== 'SJF') {
+      // Random I/O request (disabled for SRT and SJF to show pure algorithm behavior)
       cpuProcess.value.state = 'waiting'
       addLog(`Process ${cpuProcess.value.id} requested I/O, moved to Waiting`)
       cpuProcess.value = null
@@ -1421,15 +1425,7 @@ const clearHighlight = () => {
 }
 
 /* Make all algorithm cards use the FCFS gradient background */
-.algorithms-grid .algorithm-card.algo-card-fcfs,
-.algorithms-grid .algorithm-card.algo-card-sjf,
-.algorithms-grid .algorithm-card.algo-card-priority,
-.algorithms-grid .algorithm-card.algo-card-rr {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-  border-color: transparent !important;
-  color: #fff !important;
-  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.25) !important;
-}
+
 
 .algorithm-card:hover {
   transform: translateY(-5px);
